@@ -57,8 +57,7 @@ flutter run
 Create a `.env` file at the project root (it is already ignored by Git) and add the following keys:
 
 ```dotenv
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_cHJvLXRyb3V0LTUzLmNsZXJrLmFjY291bnRzLmRldiQ
-VITE_API_URL=http://localhost:3005
+# Add your .env variables here (do not commit secrets)
 ```
 
 These values are used by the interview service to communicate with the backend.

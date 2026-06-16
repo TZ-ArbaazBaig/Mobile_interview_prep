@@ -28,7 +28,14 @@ class ApiException implements Exception {
         if (data is Map && data.containsKey('message')) {
           message = data['message'];
         } else if (data is Map && data.containsKey('error')) {
-          message = data['error'];
+          message = data['error'].toString();
+        } else if (data is Map && data.containsKey('errors') && data['errors'] is List && data['errors'].isNotEmpty) {
+          final firstError = data['errors'][0];
+          if (firstError is Map && firstError.containsKey('msg')) {
+            message = firstError['msg'];
+          } else {
+            message = firstError.toString();
+          }
         } else {
           message = 'Server error: ${dioException.response?.statusMessage ?? statusCode}';
         }

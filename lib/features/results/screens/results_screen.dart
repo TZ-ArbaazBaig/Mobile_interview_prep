@@ -61,7 +61,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
       );
     }
 
-    final overallScore = session.overallScore ?? 0.0;
+    final evaluationsWithScores = session.evaluations.where((e) => e.score > 0).toList();
+    final averageScore = evaluationsWithScores.isNotEmpty
+        ? evaluationsWithScores.fold(0.0, (acc, e) => acc + e.score) / evaluationsWithScores.length
+        : 0.0;
+        
+    final strongCount = session.evaluations.where((e) => e.score >= 8).length;
+    final weakCount = session.evaluations.where((e) => e.score < 5 && e.score > 0).length;
 
     return GradientScaffold(
       appBar: AppBar(
@@ -96,7 +102,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: 16),
             
             // Overall score ring widget
-            ScoreRing(score: overallScore)
+            ScoreRing(score: averageScore)
                 .animate()
                 .fadeIn(duration: 600.ms)
                 .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.0, 1.0)),
@@ -104,7 +110,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             const SizedBox(height: 28),
 
             Text(
-              _getPerformanceTag(overallScore),
+              _getPerformanceTag(averageScore),
               style: AppTextStyles.h2(),
             ).animate().fadeIn(delay: 200.ms),
 
@@ -122,26 +128,29 @@ class _ResultsScreenState extends State<ResultsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: CategoryScoreChip(
-                    category: 'Technical',
-                    average: resultsProvider.technicalAvg,
+                  child: StatCard(
+                    title: 'Answered',
+                    value: '${evaluationsWithScores.length}/${session.questions.length}',
+                    icon: Icons.my_location_rounded,
                     color: AppColors.violet,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: CategoryScoreChip(
-                    category: 'Behavioral',
-                    average: resultsProvider.behavioralAvg,
+                  child: StatCard(
+                    title: 'Strong',
+                    value: '$strongCount',
+                    icon: Icons.emoji_events_rounded,
                     color: AppColors.success,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: CategoryScoreChip(
-                    category: 'System Design',
-                    average: resultsProvider.systemDesignAvg,
-                    color: AppColors.info,
+                  child: StatCard(
+                    title: 'Needs Work',
+                    value: '$weakCount',
+                    icon: Icons.bar_chart_rounded,
+                    color: AppColors.error,
                   ),
                 ),
               ],
@@ -229,44 +238,44 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 }
 
-class CategoryScoreChip extends StatelessWidget {
-  final String category;
-  final double average;
+class StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
   final Color color;
 
-  const CategoryScoreChip({
+  const StatCard({
     super.key,
-    required this.category,
-    required this.average,
+    required this.title,
+    required this.value,
+    required this.icon,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.bgSecondary,
+        color: AppColors.bgSecondary.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3), width: 1.2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, color: color.withOpacity(0.5), size: 24),
+          const SizedBox(height: 12),
           Text(
-            category,
-            style: AppTextStyles.bodySmall(color: AppColors.textSecondary).copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            value,
+            style: AppTextStyles.h2(color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: AppTextStyles.label(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
             maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            average.toStringAsFixed(1),
-            style: AppTextStyles.h3(color: color),
           ),
         ],
       ),

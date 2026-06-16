@@ -9,10 +9,12 @@ import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/new_session/screens/new_session_screen.dart';
 import '../../features/interview/screens/interview_screen.dart';
 import '../../features/results/screens/results_screen.dart';
+import '../../features/splash/screens/splash_screen.dart';
 
 class AppRouter {
   AppRouter._();
 
+  static const String splash = '/splash';
   static const String home = '/';
   static const String signIn = '/sign-in';
   static const String signUp = '/sign-up';
@@ -25,7 +27,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: navigatorKey,
-    initialLocation: home,
+    initialLocation: splash,
     redirect: (context, state) {
       // Access the session from ClerkAuth
       final session = ClerkAuth.sessionOf(context);
@@ -34,9 +36,10 @@ class AppRouter {
       final currentLoc = state.matchedLocation;
       final isAuthRoute = currentLoc == signIn || currentLoc == signUp || currentLoc == '/login';
       final isLandingRoute = currentLoc == home;
+      final isSplashRoute = currentLoc == splash;
 
       // Unauthenticated users trying to access protected routes
-      if (!isLoggedIn && !isAuthRoute && !isLandingRoute) {
+      if (!isLoggedIn && !isAuthRoute && !isLandingRoute && !isSplashRoute) {
         return signIn;
       }
 
@@ -48,6 +51,10 @@ class AppRouter {
       return null;
     },
     routes: [
+      GoRoute(
+        path: splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: home,
         builder: (context, state) => const HomeScreen(),

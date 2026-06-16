@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -10,8 +11,42 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppColors.bgSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.border, width: 1.5),
+            ),
+            title: Text('Exit App?', style: AppTextStyles.h3(color: AppColors.textPrimary)),
+            content: Text('Are you sure you want to exit the app?', style: AppTextStyles.bodyMedium(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('Cancel', style: AppTextStyles.label(color: AppColors.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Exit'),
+              ),
+            ],
+          ),
+        );
+        if (shouldPop == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.center,
@@ -103,7 +138,7 @@ class HomeScreen extends StatelessWidget {
                           width: 180,
                           child: AppButton(
                             text: 'Get Started',
-                            onPressed: () => context.go('/sign-up'),
+                            onPressed: () => context.push('/sign-up'),
                             variant: AppButtonVariant.primary,
                           ),
                         ),
@@ -111,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                           width: 180,
                           child: AppButton(
                             text: 'Sign In',
-                            onPressed: () => context.go('/sign-in'),
+                            onPressed: () => context.push('/sign-in'),
                             variant: AppButtonVariant.secondary,
                           ),
                         ),
@@ -194,7 +229,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildFeatureCard({

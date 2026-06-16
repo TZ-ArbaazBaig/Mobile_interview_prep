@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -98,6 +99,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.bgSecondary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border, width: 1.5),
+          ),
+          title: Text(
+            'Log Out?',
+            style: AppTextStyles.h3(color: AppColors.textPrimary),
+          ),
+          content: Text(
+            'Are you sure you want to log out of your account?',
+            style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.label(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.violet,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      await Provider.of<AuthProvider>(context, listen: false).signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -115,8 +161,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final displayName = clerkUser?.firstName ?? authProvider.currentUser?.firstName ?? 'User';
 
-    return GradientScaffold(
-      body: authProvider.isLoading
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppColors.bgSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.border, width: 1.5),
+            ),
+            title: Text('Exit App?', style: AppTextStyles.h3(color: AppColors.textPrimary)),
+            content: Text('Are you sure you want to exit the app?', style: AppTextStyles.bodyMedium(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('Cancel', style: AppTextStyles.label(color: AppColors.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Exit'),
+              ),
+            ],
+          ),
+        );
+        if (shouldPop == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: GradientScaffold(
+        body: authProvider.isLoading
           ? const AppLoader(message: 'Syncing profile with database...')
           : RefreshIndicator(
               onRefresh: () => sessionProvider.fetchSessions(),
@@ -154,9 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         IconButton(
                           icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
                           tooltip: 'Logout',
-                          onPressed: () async {
-                            await Provider.of<AuthProvider>(context, listen: false).signOut();
-                          },
+                          onPressed: () => _confirmLogout(context),
                         ),
                       ],
                     ).animate().fadeIn(duration: 400.ms),
@@ -284,6 +362,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-    );
+    ));
   }
 }

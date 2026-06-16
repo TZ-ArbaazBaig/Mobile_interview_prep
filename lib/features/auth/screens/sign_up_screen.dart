@@ -35,6 +35,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  bool get _isFormValid {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || name.length < 2) return false;
+    if (email.isEmpty) return false;
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) return false;
+    if (password.length < 8) return false;
+    if (!RegExp(r'[A-Z]').hasMatch(password)) return false;
+    if (!RegExp(r'[0-9]').hasMatch(password)) return false;
+    if (confirmPassword.isEmpty || confirmPassword != password) return false;
+
+    return true;
+  }
+
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -52,6 +70,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       
       // On success, the Clerk listener and router will automatically route to dashboard.
+    } catch (e) {
+      setState(() {
+        _errorMessage = _cleanErrorMessage(e);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signInWithGoogle();
     } catch (e) {
       setState(() {
         _errorMessage = _cleanErrorMessage(e);
@@ -162,6 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _nameController,
                       keyboardType: TextInputType.name,
                       textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         labelText: 'Full Name',
                         hintText: 'John Doe',
@@ -184,6 +225,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         labelText: 'Email Address',
                         hintText: 'name@example.com',
@@ -207,6 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
+                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         labelText: 'Password',
                         hintText: '••••••••',
@@ -244,6 +287,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
                       textInputAction: TextInputAction.done,
+                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         labelText: 'Confirm Password',
                         hintText: '••••••••',
@@ -271,7 +315,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // Submit Button
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSignUp,
+                      onPressed: (_isLoading || !_isFormValid) ? null : _handleSignUp,
                       child: _isLoading
                           ? const SizedBox(
                               height: 20,
@@ -282,6 +326,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             )
                           : const Text('Sign Up'),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
+                      icon: const Icon(Icons.g_mobiledata, size: 28),
+                      label: const Text('Sign up with Google'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   ],
                 ),
@@ -297,7 +350,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
                   ),
                   TextButton(
-                    onPressed: () => context.go(AppRouter.signIn),
+                    onPressed: () => context.pushReplacement(AppRouter.signIn),
                     child: const Text('Sign In'),
                   ),
                 ],

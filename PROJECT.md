@@ -37,8 +37,7 @@
 Create a `.env` file in the project root (already ignored by Git) and add:
 
 ```dotenv
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_cHJvLXRyb3V0LTUzLmNsZXJrLmFjY291bnRzLmRldiQ
-VITE_API_URL=http://localhost:3005
+# Add your .env variables here (do not commit secrets)
 ```
 
 ---

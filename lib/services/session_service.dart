@@ -15,6 +15,7 @@ class SessionService {
         ApiEndpoints.sessions,
         data: {
           'job_description': jobDescription,
+          'jobDescription': jobDescription,
         },
       );
       return SessionModel.fromJson(response.data as Map<String, dynamic>);
@@ -26,7 +27,13 @@ class SessionService {
   Future<List<SessionModel>> getSessions() async {
     try {
       final response = await _dioClient.dio.get(ApiEndpoints.sessions);
-      final list = response.data as List?;
+      dynamic data = response.data;
+      List? list;
+      if (data is Map<String, dynamic>) {
+        list = data['data'] as List? ?? data['sessions'] as List?;
+      } else if (data is List) {
+        list = data;
+      }
       return list?.map((item) => SessionModel.fromJson(item as Map<String, dynamic>)).toList() ?? [];
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

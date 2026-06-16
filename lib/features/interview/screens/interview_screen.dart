@@ -12,6 +12,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../widgets/category_badge.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/answer_input.dart';
+import '../widgets/evaluation_result.dart';
 import '../../../models/evaluation_model.dart';
 
 class InterviewScreen extends StatefulWidget {
@@ -27,8 +28,6 @@ class _InterviewScreenState extends State<InterviewScreen> {
   final TextEditingController _answerController = TextEditingController();
   bool _isLoadingSession = false;
   Timer? _autosaveTimer;
-  EvaluationModel? _flashResult;
-  bool _showFlash = false;
 
   @override
   void initState() {
@@ -138,40 +137,8 @@ class _InterviewScreenState extends State<InterviewScreen> {
     if (!mounted) return;
 
     if (success) {
-      final newEval = interviewProvider.evaluations[question.id];
-      setState(() {
-        _flashResult = newEval;
-        _showFlash = true;
-      });
-
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (!mounted) return;
-      setState(() {
-        _showFlash = false;
-      });
-
-      if (interviewProvider.isLastQuestion) {
-        final completedSession = await interviewProvider.submitInterview();
-        if (mounted) {
-          if (completedSession != null) {
-            Provider.of<SessionProvider>(context, listen: false).fetchSessions();
-            context.replace('/results/${completedSession.id}');
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(interviewProvider.error ?? 'Failed to submit. Please try again.'),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        }
-      } else {
-        await interviewProvider.nextQuestion();
-        if (mounted) {
-          _answerController.text = interviewProvider.currentAnswer;
-        }
-      }
+      // Evaluation is now saved in interviewProvider.evaluations[question.id]
+      // UI will automatically rebuild to show the evaluation block.
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -179,6 +146,32 @@ class _InterviewScreenState extends State<InterviewScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+    }
+  }
+
+  Future<void> _handleNextOrFinish() async {
+    final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
+    
+    if (interviewProvider.isLastQuestion) {
+      final completedSession = await interviewProvider.submitInterview();
+      if (mounted) {
+        if (completedSession != null) {
+          Provider.of<SessionProvider>(context, listen: false).fetchSessions();
+          context.replace('/results/${completedSession.id}');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(interviewProvider.error ?? 'Failed to finish session. Please try again.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } else {
+      await interviewProvider.nextQuestion();
+      if (mounted) {
+        _answerController.text = interviewProvider.currentAnswer;
+      }
     }
   }
 
@@ -297,103 +290,72 @@ class _InterviewScreenState extends State<InterviewScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: AnswerInput(
-                          controller: _answerController,
-                          onChanged: (val) {
-                            setState(() {});
-                          },
+                    if (question != null && interviewProvider.evaluations.containsKey(question.id)) ...[
+                      // POST-ANSWER: EVALUATION
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: EvaluationResult(
+                            evaluation: interviewProvider.evaluations[question.id]!,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      children: [
-                        if (currentIndex > 0) ...[
-                          Expanded(
-                            child: AppButton(
-                              text: 'Back',
-                              onPressed: () async {
-                                await _saveDraft();
-                                await interviewProvider.previousQuestion();
-                                if (mounted) {
-                                  _answerController.text = interviewProvider.currentAnswer;
-                                }
-                              },
-                              variant: AppButtonVariant.secondary,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                        ],
-                        Expanded(
-                          flex: 2,
-                          child: AppButton(
-                            text: interviewProvider.isLastQuestion ? 'Finish Interview' : 'Submit Answer',
-                            onPressed: isAnswerValid ? _handleSubmit : null,
-                            icon: interviewProvider.isLastQuestion ? Icons.check_circle_outline : Icons.arrow_forward_rounded,
-                            variant: AppButtonVariant.primary,
-                            isDisabled: !isAnswerValid,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: AppButton(
+                          text: interviewProvider.isLastQuestion ? 'Finish Session' : 'Next Question',
+                          onPressed: _handleNextOrFinish,
+                          icon: Icons.chevron_right_rounded,
+                          variant: AppButtonVariant.primary,
+                        ),
+                      ),
+                    ] else ...[
+                      // PRE-ANSWER: TEXT AREA
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: AnswerInput(
+                            controller: _answerController,
+                            onChanged: (val) {
+                              setState(() {});
+                            },
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppButton(
+                                text: 'Skip',
+                                onPressed: () async {
+                                  await _saveDraft();
+                                  _answerController.text = ''; // clear draft if they skip forward?
+                                  _handleNextOrFinish();
+                                },
+                                variant: AppButtonVariant.secondary,
+                                icon: Icons.fast_forward_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: AppButton(
+                                text: 'Submit Answer',
+                                onPressed: isAnswerValid ? _handleSubmit : null,
+                                icon: Icons.send_rounded,
+                                variant: AppButtonVariant.primary,
+                                isDisabled: !isAnswerValid,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
           ),
-          if (_showFlash && _flashResult != null)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.65),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                    margin: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgSecondary,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.violet.withOpacity(0.3), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.violet.withOpacity(0.2),
-                          blurRadius: 32,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 48),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Good job!',
-                          style: AppTextStyles.h2(color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Question Score: ${_flashResult!.score}/10',
-                          style: AppTextStyles.bodyLarge(color: AppColors.violetLight).copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

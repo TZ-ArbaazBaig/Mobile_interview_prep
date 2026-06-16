@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:clerk_auth/clerk_auth.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
-
+import 'package:app_links/app_links.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'core/api/dio_client.dart';
 import 'core/router/app_router.dart';
@@ -25,10 +28,61 @@ void main() async {
     // Fail-soft if .env is missing or cannot load
   }
 
+  // Handle incoming deep links (OAuth callbacks)
+  final appLinks = AppLinks();
+  appLinks.uriLinkStream.listen((uri) async {
+    if (uri.scheme == 'interviewprep' && uri.host == 'oauth-callback') {
+      // In a real implementation, you would pass the tokens/parameters back to Clerk.
+      // clerk_flutter is in beta and might handle this automatically or require manual parsing.
+      // Here we log the return and sync the user state.
+      debugPrint('OAuth Callback Received! Full URI: $uri');
+      final context = AppRouter.navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        // Automatically close the in-app browser popup so we return to the app seamlessly!
+        closeInAppWebView();
+
+        // Show success popup to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully authenticated! Syncing data...'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        // Extract token and pass it manually to Clerk
+        final authState = ClerkAuth.of(context);
+        final token = uri.queryParameters['token'] ??
+            uri.queryParameters['rotating_token_nonce'];
+
+        try {
+          if (token != null) {
+            await authState.attemptSignIn(
+                strategy: Strategy.oauthGoogle, token: token);
+          } else {
+            await authState.transfer();
+          }
+        } catch (_) {}
+
+        try {
+          await authState.refreshClient();
+        } catch (_) {}
+
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.initialize(); // Re-sync user state from Clerk
+        debugPrint(
+            'Successfully re-initialized AuthProvider with new Clerk state.');
+
+        // Force the router to evaluate redirects and go to dashboard
+        AppRouter.router.refresh();
+        AppRouter.router.go(AppRouter.dashboard);
+      }
+    }
+  });
+
   // Setup dynamic JWT token resolver for Dio
   DioClient.tokenGetter = () async {
     final context = AppRouter.navigatorKey.currentContext;
-    if (context != null) {
+    if (context != null && context.mounted) {
       try {
         final authState = ClerkAuth.of(context);
         final sessionToken = await authState.sessionToken();
@@ -47,13 +101,16 @@ void main() async {
   runApp(
     ClerkAuth(
       config: ClerkAuthConfig(publishableKey: clerkKey),
+      persistor: DefaultPersistor(
+        getCacheDirectory: getApplicationDocumentsDirectory,
+      ),
       child: MultiProvider(
         providers: [
           // Network clients & API clients
           Provider<DioClient>(
             create: (_) => DioClient(),
           ),
-          
+
           // API Services
           ProxyProvider<DioClient, AuthService>(
             update: (_, client, __) => AuthService(client),
@@ -74,16 +131,22 @@ void main() async {
             update: (_, service, previous) => previous ?? AuthProvider(service),
           ),
           ChangeNotifierProxyProvider<SessionService, SessionProvider>(
-            create: (context) => SessionProvider(context.read<SessionService>()),
-            update: (_, service, previous) => previous ?? SessionProvider(service),
+            create: (context) =>
+                SessionProvider(context.read<SessionService>()),
+            update: (_, service, previous) =>
+                previous ?? SessionProvider(service),
           ),
           ChangeNotifierProxyProvider<InterviewService, InterviewProvider>(
-            create: (context) => InterviewProvider(context.read<InterviewService>()),
-            update: (_, service, previous) => previous ?? InterviewProvider(service),
+            create: (context) =>
+                InterviewProvider(context.read<InterviewService>()),
+            update: (_, service, previous) =>
+                previous ?? InterviewProvider(service),
           ),
           ChangeNotifierProxyProvider<ResultsService, ResultsProvider>(
-            create: (context) => ResultsProvider(context.read<ResultsService>()),
-            update: (_, service, previous) => previous ?? ResultsProvider(service),
+            create: (context) =>
+                ResultsProvider(context.read<ResultsService>()),
+            update: (_, service, previous) =>
+                previous ?? ResultsProvider(service),
           ),
         ],
         child: const InterviewPrepApp(),
