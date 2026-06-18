@@ -257,25 +257,31 @@ class StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.bgSecondary.withOpacity(0.4),
+        color: AppColors.bgSecondary.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.2),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.2),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color.withOpacity(0.5), size: 24),
+          Icon(icon, color: color.withValues(alpha: 0.5), size: 24),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: AppTextStyles.h2(color: Colors.white),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: AppTextStyles.h2(color: Colors.white),
+            ),
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: AppTextStyles.label(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-            maxLines: 1,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              style: AppTextStyles.label(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+            ),
           ),
         ],
       ),

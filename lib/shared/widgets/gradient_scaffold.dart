@@ -38,8 +38,8 @@ class GradientScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.violetPrimary.withOpacity(0.12),
-                    AppColors.violetPrimary.withOpacity(0.0),
+                    AppColors.violetPrimary.withValues(alpha: 0.12),
+                    AppColors.violetPrimary.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -56,8 +56,8 @@ class GradientScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.violetSecondary.withOpacity(0.08),
-                    AppColors.violetSecondary.withOpacity(0.0),
+                    AppColors.violetSecondary.withValues(alpha: 0.08),
+                    AppColors.violetSecondary.withValues(alpha: 0.0),
                   ],
                 ),
               ),

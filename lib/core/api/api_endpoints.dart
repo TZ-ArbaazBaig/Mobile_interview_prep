@@ -18,4 +18,7 @@ class ApiEndpoints {
 
   // Results
   static String sessionResults(String sessionId) => '/sessions/$sessionId/results';
+
+  // RAG Chat
+  static String chat(String sessionId) => '/chat/$sessionId';
 }

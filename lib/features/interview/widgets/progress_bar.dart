@@ -55,7 +55,7 @@ class ProgressBar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.violetPrimary.withOpacity(0.4),
+                            color: AppColors.violetPrimary.withValues(alpha: 0.4),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),

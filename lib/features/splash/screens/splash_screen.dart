@@ -31,16 +31,24 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.violet.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.violet.withOpacity(0.3), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.violet.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              child: const Icon(
-                Icons.psychology_rounded,
-                color: AppColors.violetLight,
-                size: 64,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/images/app_logo.png',
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.cover,
+                ),
               ),
             ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack).fadeIn(),
             const SizedBox(height: 24),

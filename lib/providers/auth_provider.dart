@@ -4,7 +4,7 @@ import 'package:clerk_auth/clerk_auth.dart';
 import '../core/router/app_router.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../shared/widgets/oauth_bottom_sheet.dart';
 
 typedef ClerkUser = User;
 
@@ -88,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signUp(String email, String password, String name) async {
+  Future<bool> signUp(String email, String password, String firstName, String lastName) async {
     _isLoading = true;
     notifyListeners();
 
@@ -96,19 +96,52 @@ class AuthProvider extends ChangeNotifier {
       final context = AppRouter.navigatorKey.currentContext;
       if (context != null) {
         final authState = ClerkAuth.of(context);
-        await authState.attemptSignUp(
-          strategy: Strategy.password,
+        final client = await authState.attemptSignUp(
+          strategy: Strategy.emailCode,
           emailAddress: email,
           password: password,
+          passwordConfirmation: password,
+          firstName: firstName,
+          lastName: lastName,
         );
         
-        // Wait: Some Clerk strategies automatically sign the user in, 
-        // but if not, we can fetch the user.
-        if (context.mounted) {
+        if (client.signUp != null && client.signUp!.unverifiedFields.contains(Field.emailAddress)) {
+          return true; // OTP Verification required
+        }
+        
+        _user = ClerkAuth.userOf(context);
+        if (_user != null) {
+          await syncBackendUser();
+        }
+        return false; // SignUp complete, no OTP needed
+      }
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> verifySignUpCode(String code) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final context = AppRouter.navigatorKey.currentContext;
+      if (context != null) {
+        final authState = ClerkAuth.of(context);
+        final client = await authState.attemptSignUp(
+          strategy: Strategy.emailCode,
+          code: code,
+        );
+        
+        if (client.signUp == null && client.user != null) {
           _user = ClerkAuth.userOf(context);
           if (_user != null) {
             await syncBackendUser();
           }
+        } else if (client.signUp != null && client.signUp!.unverifiedFields.contains(Field.emailAddress)) {
+          throw Exception("Verification code is incorrect or expired.");
         }
       }
     } finally {
@@ -117,77 +150,121 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle(BuildContext context) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final context = AppRouter.navigatorKey.currentContext;
-      if (context != null) {
-        final authState = ClerkAuth.of(context);
+      final authState = ClerkAuth.of(context);
+      
+      // Capture hidden API errors from Clerk
+      String? clerkError;
+      final errorSub = authState.errorStream.listen((err) {
+        clerkError = err.message;
+        debugPrint('Clerk API Error: ${err.message}');
+      });
+      
+      try {
+        // Initiate OAuth flow
+        debugPrint('Initiating Google OAuth flow...');
+        await authState.oauthSignIn(
+          strategy: Strategy.oauthGoogle,
+          redirect: Uri.parse('interviewprep://oauth-callback'),
+        );
         
-        // Capture hidden API errors from Clerk
-        String? clerkError;
-        final errorSub = authState.errorStream.listen((err) {
-          clerkError = err.message;
-          debugPrint('Clerk API Error: ${err.message}');
-        });
+        if (clerkError != null) {
+          throw Exception(clerkError);
+        }
         
-        try {
-          // Initiate OAuth flow
-          debugPrint('Initiating Google OAuth flow...');
-          await authState.oauthSignIn(
-            strategy: Strategy.oauthGoogle,
-            redirect: Uri.parse('interviewprep://oauth-callback'),
-          );
+        final signIn = authState.client.signIn;
+        final verification = signIn?.firstFactorVerification;
+        
+        debugPrint('SignIn object: $signIn');
+        debugPrint('Verification object: $verification');
+        
+        if (verification != null) {
+          final redirectUrl = verification.externalVerificationRedirectUrl;
+          debugPrint('Redirect URL: $redirectUrl');
           
-          if (clerkError != null) {
-            throw Exception(clerkError);
-          }
-          
-          final signIn = authState.client.signIn;
-          final verification = signIn?.firstFactorVerification;
-          
-          debugPrint('SignIn object: $signIn');
-          debugPrint('Verification object: $verification');
-          
-          if (verification != null) {
-            final redirectUrl = verification.externalVerificationRedirectUrl;
-            debugPrint('Redirect URL: $redirectUrl');
+          if (redirectUrl != null && redirectUrl.toString().isNotEmpty) {
+            final uri = Uri.parse(redirectUrl.toString());
+            debugPrint('Showing URL in bottom sheet WebView: $uri');
             
-            if (redirectUrl != null && redirectUrl.toString().isNotEmpty) {
-              final uri = Uri.parse(redirectUrl.toString());
-              debugPrint('Launching URL in app browser: $uri');
-              // Use inAppBrowserView so it doesn't leave the app visually
-              await launchUrl(
-                uri, 
-                mode: LaunchMode.inAppBrowserView,
+            if (context.mounted) {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => OAuthBottomSheet(url: uri),
               );
-            } else {
-              debugPrint('Redirect URL is null or empty');
             }
           } else {
-            debugPrint('Verification object is null. Cannot extract redirect URL.');
-            throw Exception('Clerk did not return a valid Google Sign-In verification URL.');
+            debugPrint('Redirect URL is null or empty');
           }
-        } catch (e) {
-          debugPrint('Error starting OAuth flow: $e');
-          throw Exception('Failed to start Google Sign-In: $e');
-        } finally {
-          await errorSub.cancel();
+        } else {
+          debugPrint('Verification object is null. Cannot extract redirect URL.');
+          throw Exception('Clerk did not return a valid Google Sign-In verification URL.');
         }
+      } catch (e) {
+        debugPrint('Error starting OAuth flow: $e');
+        throw Exception('Failed to start Google Sign-In: $e');
+      } finally {
+        await errorSub.cancel();
+      }
 
-        if (context.mounted) {
-          _user = ClerkAuth.userOf(context);
-          if (_user != null) {
-            await syncBackendUser();
-          }
+      if (context.mounted) {
+        _user = ClerkAuth.userOf(context);
+        if (_user != null) {
+          await syncBackendUser();
         }
       }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> handleOAuthRedirect(Uri uri) async {
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context == null) return;
+
+    // Show success popup to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Successfully authenticated! Syncing data...'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    final authState = ClerkAuth.of(context);
+    final token = uri.queryParameters['token'] ??
+        uri.queryParameters['rotating_token_nonce'];
+
+    try {
+      if (token != null) {
+        await authState.attemptSignIn(
+            strategy: Strategy.oauthGoogle, token: token);
+      } else {
+        await authState.transfer();
+      }
+    } catch (e) {
+      debugPrint('Error attempting sign in on redirect: $e');
+    }
+
+    try {
+      await authState.refreshClient();
+    } catch (e) {
+      debugPrint('Error refreshing client: $e');
+    }
+
+    await initialize(); // Re-sync user state from Clerk
+    debugPrint(
+        'Successfully re-initialized AuthProvider with new Clerk state.');
+
+    // Force the router to evaluate redirects and go to dashboard
+    AppRouter.router.refresh();
+    AppRouter.router.go(AppRouter.dashboard);
   }
 
   Future<void> signOut() async {

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -13,6 +15,8 @@ import '../../../shared/widgets/gradient_scaffold.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_error_widget.dart';
 import '../../../shared/widgets/app_empty_state.dart';
+import '../../settings/screens/privacy_policy_screen.dart';
+import '../../settings/screens/terms_screen.dart';
 import '../widgets/session_card.dart';
 import '../widgets/session_shimmer.dart';
 import '../../../models/session_model.dart';
@@ -144,6 +148,197 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final webUrl = dotenv.env['WEB_APP_URL'] ?? 'https://interviewprep-production-d031.up.railway.app';
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.bgSecondary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border, width: 1.5),
+          ),
+          title: Text(
+            'Delete Account?',
+            style: AppTextStyles.h3(color: AppColors.error),
+          ),
+          content: Text(
+            'To comply with Google Play Policy, account deletion is managed securely on our web dashboard. We will redirect you to your settings page where you can delete your profile, credentials, and all practice data.',
+            style: AppTextStyles.bodyMedium(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.label(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Go to Web Dashboard'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      final deleteUri = Uri.parse('$webUrl/profile');
+      if (await canLaunchUrl(deleteUri)) {
+        await launchUrl(deleteUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open account deletion link.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        final clerkUser = ClerkAuth.userOf(context);
+        final email = (clerkUser?.emailAddresses != null && clerkUser!.emailAddresses!.isNotEmpty)
+            ? clerkUser.emailAddresses!.first.emailAddress
+            : '';
+
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.bgSecondary,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Settings & Account',
+                  style: AppTextStyles.h3(color: AppColors.textPrimary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                if (clerkUser != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgTertiary,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: AppColors.violet.withValues(alpha: 0.2),
+                          backgroundImage: clerkUser.imageUrl != null 
+                              ? NetworkImage(clerkUser.imageUrl!) 
+                              : null,
+                          child: clerkUser.imageUrl == null
+                              ? const Icon(Icons.person, color: AppColors.violetLight)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}'.trim(),
+                                style: AppTextStyles.bodyMedium(color: AppColors.textPrimary).copyWith(fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (email.isNotEmpty)
+                                Text(
+                                  email,
+                                  style: AppTextStyles.bodySmall(color: AppColors.textSecondary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.violetLight),
+                  title: Text('Privacy Policy', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
+                  trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined, color: AppColors.violetLight),
+                  title: Text('Terms of Service', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
+                  trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const TermsScreen()),
+                    );
+                  },
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
+                  title: Text('Log Out', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmLogout(context);
+                  },
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_rounded, color: AppColors.error),
+                  title: Text('Delete Account', style: AppTextStyles.bodyMedium(color: AppColors.error)),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmDeleteAccount(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -212,29 +407,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 22,
-                              backgroundColor: AppColors.violet.withOpacity(0.2),
-                              backgroundImage: clerkUser?.imageUrl != null 
-                                  ? NetworkImage(clerkUser!.imageUrl!) 
-                                  : null,
-                              child: clerkUser?.imageUrl == null
-                                  ? const Icon(Icons.person, color: AppColors.violetLight)
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Hello, $displayName 👋',
-                              style: AppTextStyles.h3(color: Colors.white),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.violet.withValues(alpha: 0.2),
+                                backgroundImage: clerkUser?.imageUrl != null 
+                                    ? NetworkImage(clerkUser!.imageUrl!) 
+                                    : null,
+                                child: clerkUser?.imageUrl == null
+                                    ? const Icon(Icons.person, color: AppColors.violetLight)
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Hello, $displayName 👋',
+                                  style: AppTextStyles.h3(color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
-                          tooltip: 'Logout',
-                          onPressed: () => _confirmLogout(context),
+                          icon: const Icon(Icons.settings_rounded, color: AppColors.textSecondary),
+                          tooltip: 'Settings & Account',
+                          onPressed: () => _showSettingsBottomSheet(context),
                         ),
                       ],
                     ).animate().fadeIn(duration: 400.ms),
@@ -255,14 +457,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Completed Preps',
-                                  style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Completed Preps',
+                                    style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  '$totalCompleted',
-                                  style: AppTextStyles.h2(),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '$totalCompleted',
+                                    style: AppTextStyles.h2(),
+                                  ),
                                 ),
                               ],
                             ),
@@ -278,15 +486,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Average Score',
-                                    style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Average Score',
+                                      style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
-                                    totalCompleted > 0 ? '${avgScore.toStringAsFixed(1)}/10' : '--',
-                                    style: AppTextStyles.h2(
-                                      color: totalCompleted > 0 ? AppColors.violetLight : AppColors.textPrimary,
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      totalCompleted > 0 ? '${avgScore.toStringAsFixed(1)}/10' : '--',
+                                      style: AppTextStyles.h2(
+                                        color: totalCompleted > 0 ? AppColors.violetLight : AppColors.textPrimary,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -303,14 +517,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Your History',
-                          style: AppTextStyles.h3(),
+                        Expanded(
+                          child: Text(
+                            'Recent Sessions',
+                            style: AppTextStyles.h3(),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
-                        TextButton.icon(
-                          onPressed: () => context.push('/new-session'),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Start New'),
+                        const SizedBox(width: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => context.push('/history'),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('View All'),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              onPressed: () => context.push('/new-session'),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Start New'),
+                            ),
+                          ],
                         ),
                       ],
                     ).animate().fadeIn(delay: 200.ms),
@@ -321,8 +560,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (sessionProvider.isLoading)
                       const Column(
                         children: [
-                          SessionShimmer(),
-                          SizedBox(height: 16),
                           SessionShimmer(),
                           SizedBox(height: 16),
                           SessionShimmer(),
@@ -345,7 +582,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: sessionProvider.sessions.length,
+                        itemCount: sessionProvider.sessions.length > 3 ? 3 : sessionProvider.sessions.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final session = sessionProvider.sessions[index];

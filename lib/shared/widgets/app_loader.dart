@@ -22,7 +22,7 @@ class AppLoader extends StatelessWidget {
               border: Border.all(color: AppColors.borderDark, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.violetPrimary.withOpacity(0.15),
+                  color: AppColors.violetPrimary.withValues(alpha: 0.15),
                   blurRadius: 24,
                   spreadRadius: 2,
                 ),

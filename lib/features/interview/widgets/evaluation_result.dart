@@ -14,13 +14,20 @@ class EvaluationResult extends StatefulWidget {
 }
 
 class _EvaluationResultState extends State<EvaluationResult> {
-  bool _showModelAnswer = false;
 
   Color get _scoreColor {
     final score = widget.evaluation.score;
-    if (score >= 8) return AppColors.success;
-    if (score >= 5) return AppColors.violetLight;
-    return AppColors.error;
+    if (score >= 8) return const Color(0xFF34D399); // emerald
+    if (score >= 5) return const Color(0xFFA855F7); // violet
+    return const Color(0xFFFB7185); // rose
+  }
+
+  Color get _scoreBgColor {
+    return _scoreColor.withValues(alpha: 0.05);
+  }
+
+  Color get _scoreBorderColor {
+    return _scoreColor.withValues(alpha: 0.2);
   }
 
   @override
@@ -36,9 +43,9 @@ class _EvaluationResultState extends State<EvaluationResult> {
               width: 120,
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               decoration: BoxDecoration(
-                color: AppColors.bgSecondary,
+                color: _scoreBgColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: _scoreBorderColor, width: 1.5),
               ),
               child: Column(
                 children: [
@@ -92,7 +99,7 @@ class _EvaluationResultState extends State<EvaluationResult> {
         // Model Answer Accordion
         Container(
           decoration: BoxDecoration(
-            color: AppColors.bgSecondary.withOpacity(0.5),
+            color: AppColors.bgSecondary.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
           ),
@@ -104,7 +111,7 @@ class _EvaluationResultState extends State<EvaluationResult> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.violet.withOpacity(0.2),
+                      color: AppColors.violet.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.bolt, color: AppColors.violetLight, size: 20),
@@ -115,9 +122,6 @@ class _EvaluationResultState extends State<EvaluationResult> {
               ),
               iconColor: Colors.white,
               collapsedIconColor: Colors.white,
-              onExpansionChanged: (expanded) {
-                setState(() => _showModelAnswer = expanded);
-              },
               children: [
                 Container(
                   padding: const EdgeInsets.all(24),

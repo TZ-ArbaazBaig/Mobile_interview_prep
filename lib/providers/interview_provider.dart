@@ -194,4 +194,14 @@ class InterviewProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  Future<void> retryQuestion(int index) async {
+    if (_activeSession == null) return;
+    _currentIndex = index;
+    await _secureStorage.write(key: 'session_${_activeSession!.id}_index', value: index.toString());
+    final qId = _questions[index].id;
+    _evaluations.remove(qId);
+    await _secureStorage.delete(key: 'session_${_activeSession!.id}_q_${qId}_draft');
+    notifyListeners();
+  }
 }

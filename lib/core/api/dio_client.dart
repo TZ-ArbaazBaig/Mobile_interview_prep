@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -57,9 +58,59 @@ class DioClient {
               // Token retrieval failed, continue without authorization header
             }
           }
+
+          // Log request (Frontend Sending) in Yellow (\x1B[33m)
+          final reqBuf = StringBuffer();
+          reqBuf.writeln('=================== FRONTEND SENDING ===================');
+          reqBuf.writeln('URI: ${options.method} ${options.uri}');
+          if (options.headers.isNotEmpty) {
+            reqBuf.writeln('Headers: ${options.headers}');
+          }
+          if (options.queryParameters.isNotEmpty) {
+            reqBuf.writeln('Query Params: ${options.queryParameters}');
+          }
+          if (options.data != null) {
+            reqBuf.writeln('Body: ${options.data}');
+          }
+          reqBuf.writeln('========================================================');
+          print('\x1B[33m${reqBuf.toString()}\x1B[0m');
+
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          // Log response (Backend Returning) in Green (\x1B[32m)
+          final resBuf = StringBuffer();
+          resBuf.writeln('=================== BACKEND RESPONSE ===================');
+          resBuf.writeln('Status: ${response.statusCode} ${response.statusMessage}');
+          resBuf.writeln('URI: ${response.requestOptions.method} ${response.requestOptions.uri}');
+          if (response.data != null) {
+            resBuf.writeln('Body: ${response.data}');
+          }
+          resBuf.writeln('========================================================');
+          print('\x1B[32m${resBuf.toString()}\x1B[0m');
+
+          return handler.next(response);
+        },
         onError: (DioException e, handler) async {
+          // Log error response (Backend Returning Error) in Green (\x1B[32m) or Red (\x1B[31m)
+          final resBuf = StringBuffer();
+          if (e.response != null) {
+            resBuf.writeln('=================== BACKEND RESPONSE (ERROR) ===================');
+            resBuf.writeln('Status: ${e.response?.statusCode} ${e.response?.statusMessage}');
+            resBuf.writeln('URI: ${e.requestOptions.method} ${e.requestOptions.uri}');
+            if (e.response?.data != null) {
+              resBuf.writeln('Body: ${e.response?.data}');
+            }
+            resBuf.writeln('================================================================');
+            print('\x1B[32m${resBuf.toString()}\x1B[0m');
+          } else {
+            resBuf.writeln('=================== BACKEND CONNECTION ERROR ===================');
+            resBuf.writeln('URI: ${e.requestOptions.method} ${e.requestOptions.uri}');
+            resBuf.writeln('Error: ${e.message}');
+            resBuf.writeln('================================================================');
+            print('\x1B[31m${resBuf.toString()}\x1B[0m');
+          }
+
           if (e.response?.statusCode == 401) {
             final retried = e.requestOptions.extra['retried'] == true;
             if (!retried) {

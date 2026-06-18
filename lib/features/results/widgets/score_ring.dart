@@ -19,13 +19,11 @@ class ScoreRing extends StatelessWidget {
     
     Color baseColor;
     if (score >= 8.0) {
-      baseColor = AppColors.violet;
-    } else if (score >= 6.0) {
-      baseColor = AppColors.success;
-    } else if (score >= 4.0) {
-      baseColor = AppColors.warning;
+      baseColor = const Color(0xFF34D399); // emerald
+    } else if (score >= 5.0) {
+      baseColor = const Color(0xFFA855F7); // violet
     } else {
-      baseColor = AppColors.error;
+      baseColor = const Color(0xFFFB7185); // rose
     }
     
     return TweenAnimationBuilder<double>(
@@ -40,7 +38,7 @@ class ScoreRing extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: baseColor.withOpacity(0.15 * value),
+                color: baseColor.withValues(alpha: 0.15 * value),
                 blurRadius: 32,
                 spreadRadius: 2,
               ),
@@ -100,10 +98,10 @@ class _ScoreRingPainter extends CustomPainter {
     final activePaint = Paint()
       ..shader = SweepGradient(
         colors: [
-          color.withOpacity(0.6),
+          color.withValues(alpha: 0.6),
           color,
-          color.withOpacity(0.9),
-          color.withOpacity(0.6),
+          color.withValues(alpha: 0.9),
+          color.withValues(alpha: 0.6),
         ],
         startAngle: -pi / 2,
         endAngle: 3 * pi / 2,

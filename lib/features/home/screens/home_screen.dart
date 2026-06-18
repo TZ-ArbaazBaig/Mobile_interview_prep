@@ -68,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                 height: 300,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.violet.withOpacity(0.08),
+                  color: AppColors.violet.withValues(alpha: 0.08),
                 ),
               ),
             ),
@@ -84,17 +84,13 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.violet.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.violet.withOpacity(0.3), width: 1.5),
-                          ),
-                          child: const Icon(
-                            Icons.psychology_rounded,
-                            color: AppColors.violetLight,
-                            size: 32,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -250,7 +246,7 @@ class HomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.violet.withOpacity(0.1),
+              color: AppColors.violet.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: AppColors.violetLight, size: 24),

@@ -48,10 +48,14 @@ class AppButton extends StatelessWidget {
                 Icon(icon, size: 18, color: _getTextColor(isEnabled)),
                 const SizedBox(width: 8),
               ],
-              Text(
-                displayLabel,
-                style: AppTextStyles.buttonText(
-                  color: _getTextColor(isEnabled),
+              Flexible(
+                child: Text(
+                  displayLabel,
+                  style: AppTextStyles.buttonText(
+                    color: _getTextColor(isEnabled),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],
@@ -67,7 +71,7 @@ class AppButton extends StatelessWidget {
           boxShadow: isEnabled && (variant == AppButtonVariant.primary || variant == AppButtonVariant.danger)
               ? [
                   BoxShadow(
-                    color: (variant == AppButtonVariant.danger ? AppColors.error : AppColors.violet).withOpacity(0.3),
+                    color: (variant == AppButtonVariant.danger ? AppColors.error : AppColors.violet).withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -97,7 +101,7 @@ class AppButton extends StatelessWidget {
   }
 
   ButtonStyle _getButtonStyle(bool isEnabled) {
-    final Color disabledBg = AppColors.bgSecondary.withOpacity(0.5);
+    final Color disabledBg = AppColors.bgSecondary.withValues(alpha: 0.5);
     
     switch (variant) {
       case AppButtonVariant.primary:

@@ -15,11 +15,11 @@ class EvaluationModel {
 
   factory EvaluationModel.fromJson(Map<String, dynamic> json) {
     return EvaluationModel(
-      questionId: json['question_id'] as String? ?? '',
-      score: (json['score'] as num? ?? 0).toInt(),
-      feedback: json['feedback'] as String? ?? '',
-      modelAnswer: json['model_answer'] as String? ?? json['suggested_answer'] as String? ?? '',
-      userAnswer: json['user_answer'] as String? ?? '',
+      questionId: json['questionId'] as String? ?? json['question_id'] as String? ?? '',
+      score: (json['aiScore'] as num? ?? json['ai_score'] as num? ?? json['score'] as num? ?? 0).toInt(),
+      feedback: json['aiFeedback'] as String? ?? json['ai_feedback'] as String? ?? json['feedback'] as String? ?? '',
+      modelAnswer: json['betterAnswer'] as String? ?? json['better_answer'] as String? ?? json['modelAnswer'] as String? ?? json['model_answer'] as String? ?? json['suggested_answer'] as String? ?? '',
+      userAnswer: json['userAnswer'] as String? ?? json['user_answer'] as String? ?? '',
     );
   }
 

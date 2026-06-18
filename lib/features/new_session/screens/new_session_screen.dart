@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/session_provider.dart';
@@ -25,10 +26,22 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
   @override
   void initState() {
     super.initState();
+    _loadDraft();
+    _jdController.addListener(_onTextChanged);
+  }
+
+  Future<void> _loadDraft() async {
     if (widget.prefilledJd != null) {
       _jdController.text = widget.prefilledJd!;
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      final savedDraft = prefs.getString('jd_draft') ?? '';
+      if (savedDraft.isNotEmpty) {
+        setState(() {
+          _jdController.text = savedDraft;
+        });
+      }
     }
-    _jdController.addListener(_onTextChanged);
   }
 
   @override
@@ -38,8 +51,10 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
     super.dispose();
   }
 
-  void _onTextChanged() {
+  void _onTextChanged() async {
     setState(() {});
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jd_draft', _jdController.text);
   }
 
   Future<void> _handleGenerate() async {
@@ -60,18 +75,29 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
         throw Exception(sessionProvider.error ?? 'Failed to initialize session.');
       }
 
+      // Clear local storage cache
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('jd_draft');
+
+      // If the backend already generated and returned questions, route to the practice screen directly!
+      if (session.questions.isNotEmpty) {
+        if (!mounted) return;
+        context.replace('/practice/${session.id}');
+        return;
+      }
+
       if (!mounted) return;
       setState(() {
         _loadingMessage = 'AI is tailoring 5 custom interview questions...\nThis might take up to 30 seconds.';
       });
 
-      // Step 2: Generate questions (POST /sessions/:id/questions)
+      // Step 2: Generate questions (POST /sessions/:id/questions) (for lazy-generation backends)
       final updatedSession = await sessionProvider.generateQuestions(session.id);
 
       if (!mounted) return;
 
       if (updatedSession != null && updatedSession.questions.isNotEmpty) {
-        context.replace('/interview/${updatedSession.id}');
+        context.replace('/practice/${updatedSession.id}');
       } else {
         throw Exception(sessionProvider.error ?? 'Empty response or no questions generated.');
       }
@@ -104,8 +130,10 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
       );
     }
 
-    final charCount = _jdController.text.trim().length;
-    final isReady = charCount >= 100;
+    final text = _jdController.text.trim();
+    final charCount = text.length;
+    final wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+    final isReady = charCount >= 100 && wordCount <= 3000;
 
     return GradientScaffold(
       appBar: AppBar(
@@ -140,9 +168,12 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Job Description',
-                    style: AppTextStyles.label(color: AppColors.textPrimary),
+                  Expanded(
+                    child: Text(
+                      'Job Description',
+                      style: AppTextStyles.label(color: AppColors.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   if (_jdController.text.isNotEmpty)
                     TextButton(
@@ -176,8 +207,13 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please paste a job description';
                   }
-                  if (value.trim().length < 100) {
+                  final trimmed = value.trim();
+                  if (trimmed.length < 100) {
                     return 'Please enter at least 100 characters';
+                  }
+                  final words = trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+                  if (words > 3000) {
+                    return 'Job description cannot exceed 3000 words';
                   }
                   return null;
                 },
@@ -185,19 +221,31 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
               const SizedBox(height: 12),
               
               // Counter and character feedback
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   Text(
-                    '$charCount / 100 characters minimum',
+                    wordCount > 3000
+                        ? '$wordCount / 3000 words maximum'
+                        : '$charCount / 100 characters minimum',
                     style: AppTextStyles.bodySmall(
-                      color: isReady ? AppColors.success : AppColors.textSecondary,
+                      color: wordCount > 3000
+                          ? AppColors.error
+                          : (isReady ? AppColors.success : AppColors.textSecondary),
                     ),
                   ),
-                  if (!isReady && charCount > 0)
+                  if (charCount > 0 && charCount < 100)
                     Text(
-                      'Requires ${100 - charCount} more',
+                      'Requires ${100 - charCount} more characters',
                       style: AppTextStyles.bodySmall(color: AppColors.warning),
+                    )
+                  else if (wordCount > 3000)
+                    Text(
+                      'Exceeds limit by ${wordCount - 3000} words',
+                      style: AppTextStyles.bodySmall(color: AppColors.error),
                     ),
                 ],
               ),

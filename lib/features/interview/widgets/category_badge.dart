@@ -27,9 +27,9 @@ class CategoryBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.12),
+        color: badgeColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.2),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.3), width: 1.2),
       ),
       child: Text(
         category.toUpperCase(),

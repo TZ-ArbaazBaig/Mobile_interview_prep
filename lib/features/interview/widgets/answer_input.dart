@@ -66,7 +66,7 @@ class _AnswerInputState extends State<AnswerInput> {
             boxShadow: _isFocused
                 ? [
                     BoxShadow(
-                      color: AppColors.violet.withOpacity(0.15),
+                      color: AppColors.violet.withValues(alpha: 0.15),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),

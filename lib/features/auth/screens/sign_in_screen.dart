@@ -77,7 +77,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.signInWithGoogle();
+      await authProvider.signInWithGoogle(context);
     } catch (e) {
       setState(() {
         _errorMessage = _cleanErrorMessage(e);
@@ -119,16 +119,24 @@ class _SignInScreenState extends State<SignInScreen> {
               // Logo/Header
               Center(
                 child: Container(
-                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.violet.withOpacity(0.1),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.violet.withOpacity(0.3), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.violet.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.psychology_outlined,
-                    color: AppColors.violetLight,
-                    size: 48,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(36),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -151,9 +159,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [

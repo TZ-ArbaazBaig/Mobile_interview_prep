@@ -27,7 +27,7 @@ class AppErrorWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.charcoalCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.error.withOpacity(0.3), width: 1.5),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.3), width: 1.5),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -35,7 +35,7 @@ class AppErrorWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

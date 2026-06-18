@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/interview_provider.dart';
@@ -13,7 +15,6 @@ import '../widgets/category_badge.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/answer_input.dart';
 import '../widgets/evaluation_result.dart';
-import '../../../models/evaluation_model.dart';
 
 class InterviewScreen extends StatefulWidget {
   final String sessionId;
@@ -27,6 +28,7 @@ class InterviewScreen extends StatefulWidget {
 class _InterviewScreenState extends State<InterviewScreen> {
   final TextEditingController _answerController = TextEditingController();
   bool _isLoadingSession = false;
+  bool _isHintRevealed = false;
   Timer? _autosaveTimer;
 
   @override
@@ -150,6 +152,9 @@ class _InterviewScreenState extends State<InterviewScreen> {
   }
 
   Future<void> _handleNextOrFinish() async {
+    setState(() {
+      _isHintRevealed = false;
+    });
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     
     if (interviewProvider.isLastQuestion) {
@@ -261,44 +266,118 @@ class _InterviewScreenState extends State<InterviewScreen> {
                   const SizedBox(height: 24),
 
                   if (question != null) ...[
-                    CategoryBadge(category: question.category),
-                    const SizedBox(height: 16),
+                    // Scrollable content area containing Question info + Input/Evaluation
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CategoryBadge(category: question.category),
+                            const SizedBox(height: 16),
 
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgSecondary,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        question.text,
-                        style: AppTextStyles.h3(color: Colors.white).copyWith(
-                          height: 1.4,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: AppColors.bgSecondary,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.border, width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.3),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                question.text,
+                                style: AppTextStyles.h3(color: Colors.white).copyWith(
+                                  height: 1.4,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Strategic Hint
+                            if (question.hint.isNotEmpty && !interviewProvider.evaluations.containsKey(question.id)) ...[
+                              InkWell(
+                                onTap: () => setState(() => _isHintRevealed = !_isHintRevealed),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _isHintRevealed ? Icons.lightbulb : Icons.lightbulb_outline,
+                                        color: _isHintRevealed ? AppColors.warning : AppColors.textSecondary,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _isHintRevealed ? 'Hide Strategic Hint' : 'Reveal Strategic Hint',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: _isHintRevealed ? AppColors.warning : AppColors.textSecondary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Icon(
+                                        _isHintRevealed ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                        color: AppColors.textMuted,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (_isHintRevealed) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgSecondary,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Text(
+                                    question.hint,
+                                    style: GoogleFonts.inter(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ).animate().fadeIn(duration: 250.ms).scaleXY(begin: 0.95, end: 1.0, curve: Curves.easeOutBack),
+                              ],
+                              const SizedBox(height: 24),
+                            ],
+
+                            if (interviewProvider.evaluations.containsKey(question.id)) ...[
+                              // POST-ANSWER: EVALUATION DETAILS
+                              EvaluationResult(
+                                evaluation: interviewProvider.evaluations[question.id]!,
+                              ),
+                            ] else ...[
+                              // PRE-ANSWER: TEXT AREA INPUT
+                              AnswerInput(
+                                controller: _answerController,
+                                onChanged: (val) {
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                            const SizedBox(height: 16), // Bottom spacer inside scroll
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
 
-                    if (question != null && interviewProvider.evaluations.containsKey(question.id)) ...[
-                      // POST-ANSWER: EVALUATION
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: EvaluationResult(
-                            evaluation: interviewProvider.evaluations[question.id]!,
-                          ),
-                        ),
-                      ),
+                    // Action buttons kept static at the bottom
+                    if (interviewProvider.evaluations.containsKey(question.id)) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: AppButton(
@@ -309,17 +388,6 @@ class _InterviewScreenState extends State<InterviewScreen> {
                         ),
                       ),
                     ] else ...[
-                      // PRE-ANSWER: TEXT AREA
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: AnswerInput(
-                            controller: _answerController,
-                            onChanged: (val) {
-                              setState(() {});
-                            },
-                          ),
-                        ),
-                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Row(

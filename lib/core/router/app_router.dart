@@ -3,11 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 
 import '../../features/home/screens/home_screen.dart';
+import '../../features/home/screens/history_screen.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/new_session/screens/new_session_screen.dart';
+import '../../features/practice/screens/practice_screen.dart';
 import '../../features/interview/screens/interview_screen.dart';
+import '../../features/chat/screens/chat_screen.dart';
 import '../../features/results/screens/results_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
 
@@ -20,8 +23,11 @@ class AppRouter {
   static const String signUp = '/sign-up';
   static const String dashboard = '/dashboard';
   static const String newSession = '/new-session';
+  static const String practice = '/practice';
   static const String interview = '/interview';
+  static const String chat = '/chat';
   static const String results = '/results';
+  static const String history = '/history';
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -83,10 +89,28 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: history,
+        builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: '$practice/:sessionId',
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId'] ?? '';
+          return PracticeScreen(sessionId: sessionId);
+        },
+      ),
+      GoRoute(
         path: '$interview/:sessionId',
         builder: (context, state) {
           final sessionId = state.pathParameters['sessionId'] ?? '';
           return InterviewScreen(sessionId: sessionId);
+        },
+      ),
+      GoRoute(
+        path: '$chat/:sessionId',
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId'] ?? '';
+          return ChatScreen(sessionId: sessionId);
         },
       ),
       GoRoute(

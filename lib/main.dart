@@ -13,10 +13,12 @@ import 'services/auth_service.dart';
 import 'services/session_service.dart';
 import 'services/interview_service.dart';
 import 'services/results_service.dart';
+import 'services/chat_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/session_provider.dart';
 import 'providers/interview_provider.dart';
 import 'providers/results_provider.dart';
+import 'providers/chat_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,49 +34,14 @@ void main() async {
   final appLinks = AppLinks();
   appLinks.uriLinkStream.listen((uri) async {
     if (uri.scheme == 'interviewprep' && uri.host == 'oauth-callback') {
-      // In a real implementation, you would pass the tokens/parameters back to Clerk.
-      // clerk_flutter is in beta and might handle this automatically or require manual parsing.
-      // Here we log the return and sync the user state.
       debugPrint('OAuth Callback Received! Full URI: $uri');
       final context = AppRouter.navigatorKey.currentContext;
       if (context != null && context.mounted) {
         // Automatically close the in-app browser popup so we return to the app seamlessly!
         closeInAppWebView();
-
-        // Show success popup to user
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully authenticated! Syncing data...'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        // Extract token and pass it manually to Clerk
-        final authState = ClerkAuth.of(context);
-        final token = uri.queryParameters['token'] ??
-            uri.queryParameters['rotating_token_nonce'];
-
-        try {
-          if (token != null) {
-            await authState.attemptSignIn(
-                strategy: Strategy.oauthGoogle, token: token);
-          } else {
-            await authState.transfer();
-          }
-        } catch (_) {}
-
-        try {
-          await authState.refreshClient();
-        } catch (_) {}
-
+        
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.initialize(); // Re-sync user state from Clerk
-        debugPrint(
-            'Successfully re-initialized AuthProvider with new Clerk state.');
-
-        // Force the router to evaluate redirects and go to dashboard
-        AppRouter.router.refresh();
-        AppRouter.router.go(AppRouter.dashboard);
+        await authProvider.handleOAuthRedirect(uri);
       }
     }
   });
@@ -124,6 +91,9 @@ void main() async {
           ProxyProvider<DioClient, ResultsService>(
             update: (_, client, __) => ResultsService(client),
           ),
+          ProxyProvider<DioClient, ChatService>(
+            update: (_, client, __) => ChatService(client),
+          ),
 
           // ChangeNotifier State Providers
           ChangeNotifierProxyProvider<AuthService, AuthProvider>(
@@ -147,6 +117,12 @@ void main() async {
                 ResultsProvider(context.read<ResultsService>()),
             update: (_, service, previous) =>
                 previous ?? ResultsProvider(service),
+          ),
+          ChangeNotifierProxyProvider<ChatService, ChatProvider>(
+            create: (context) =>
+                ChatProvider(context.read<ChatService>()),
+            update: (_, service, previous) =>
+                previous ?? ChatProvider(service),
           ),
         ],
         child: const InterviewPrepApp(),
