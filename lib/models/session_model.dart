@@ -1,5 +1,6 @@
 import 'question_model.dart';
 import 'evaluation_model.dart';
+import 'package:flutter/foundation.dart';
 
 class SessionModel {
   final String id;
@@ -10,6 +11,8 @@ class SessionModel {
   final List<EvaluationModel> evaluations;
   final double? overallScore;
   final bool isCompleted;
+  final int? questionCount;
+  final int? answeredCount;
 
   SessionModel({
     required this.id,
@@ -20,6 +23,8 @@ class SessionModel {
     this.evaluations = const [],
     this.overallScore,
     this.isCompleted = false,
+    this.questionCount,
+    this.answeredCount,
   });
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +88,20 @@ class SessionModel {
       }
     }
 
+    final int? qCount = json['questionCount'] as int? ?? sessionData['questionCount'] as int?;
+    final int? aCount = json['answeredCount'] as int? ?? sessionData['answeredCount'] as int?;
+    
+    final isCompletedParsed = sessionData['is_completed'] as bool? ?? sessionData['isCompleted'] as bool?;
+    final totalQ = qCount ?? questionsList.length;
+    final answeredE = aCount ?? evaluationsList.length;
+    final bool computedCompleted = isCompletedParsed ?? (totalQ > 0 && answeredE >= totalQ);
+
+    final double? parsedScore = sessionData['overall_score'] != null 
+        ? (sessionData['overall_score'] as num).toDouble() 
+        : (sessionData['overallScore'] != null ? (sessionData['overallScore'] as num).toDouble() : null);
+
+    debugPrint('PARSED SESSION: $title, overallScore: $parsedScore, isCompleted: $computedCompleted, questionCount: $qCount, answeredCount: $aCount');
+
     return SessionModel(
       id: sessionData['id'] as String? ?? sessionData['_id'] as String? ?? sessionData['sessionId'] as String? ?? '',
       jobTitle: title,
@@ -90,10 +109,10 @@ class SessionModel {
       createdAt: parsedDate.toLocal(),
       questions: questionsList,
       evaluations: evaluationsList,
-      overallScore: sessionData['overall_score'] != null 
-          ? (sessionData['overall_score'] as num).toDouble() 
-          : (sessionData['overallScore'] != null ? (sessionData['overallScore'] as num).toDouble() : null),
-      isCompleted: sessionData['is_completed'] as bool? ?? sessionData['isCompleted'] as bool? ?? false,
+      overallScore: parsedScore,
+      isCompleted: computedCompleted,
+      questionCount: qCount,
+      answeredCount: aCount,
     );
   }
 
@@ -107,6 +126,9 @@ class SessionModel {
       'evaluations': evaluations.map((e) => e.toJson()).toList(),
       'overall_score': overallScore,
       'is_completed': isCompleted,
+      'questionCount': questionCount,
+      'answeredCount': answeredCount,
     };
   }
 }
+

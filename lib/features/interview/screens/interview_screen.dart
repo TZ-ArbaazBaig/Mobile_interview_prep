@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_utils.dart';
 import '../../../providers/interview_provider.dart';
 import '../../../providers/session_provider.dart';
 import '../../../shared/widgets/gradient_scaffold.dart';
@@ -73,14 +74,14 @@ class _InterviewScreenState extends State<InterviewScreen> {
       if (mounted) {
         _answerController.text = interviewProvider.currentAnswer;
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load session details: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to load session details: ${ErrorUtils.cleanErrorMessage(e)}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
         context.go('/dashboard');
       }
     } finally {
@@ -269,6 +270,7 @@ class _InterviewScreenState extends State<InterviewScreen> {
                     // Scrollable content area containing Question info + Input/Evaluation
                     Expanded(
                       child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

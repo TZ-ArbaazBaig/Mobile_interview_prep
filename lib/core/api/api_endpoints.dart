@@ -12,6 +12,7 @@ class ApiEndpoints {
   static String sessionById(String id) => '/sessions/$id';
 
   // Interview
+  static const String evaluate       = '/evaluate';
   static String generateQuestions(String sessionId) => '/sessions/$sessionId/questions';
   static String submitAnswer(String sessionId, String questionId) =>
       '/sessions/$sessionId/questions/$questionId/answer';

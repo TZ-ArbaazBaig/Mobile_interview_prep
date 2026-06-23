@@ -87,14 +87,28 @@ class _ChatScreenState extends State<ChatScreen> {
     // Trigger auto-scroll on load / message count change
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
-    return GradientScaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => context.pop(),
-        ),
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return PopScope(
+      canPop: keyboardHeight == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: GradientScaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () {
+              if (MediaQuery.of(context).viewInsets.bottom > 0) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              } else {
+                context.pop();
+              }
+            },
+          ),
         title: Column(
           children: [
             Text(
@@ -315,7 +329,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMessageBubble(ChatMessage message) {

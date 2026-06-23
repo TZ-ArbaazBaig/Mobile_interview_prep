@@ -13,14 +13,17 @@ class SessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateStr = _formatDate(session.createdAt);
     
-    final answeredCount = session.evaluations.length;
-    final totalCount = session.questions.isEmpty ? 10 : session.questions.length;
-    final progressVal = answeredCount / totalCount;
+    final answeredCount = session.answeredCount ?? session.evaluations.length;
+    final totalCount = session.questionCount ?? (session.questions.isEmpty ? 10 : session.questions.length);
+    final progressVal = totalCount > 0 ? answeredCount / totalCount : 0.0;
 
     return InkWell(
       onTap: () {
-        // Navigate to the practice console
-        context.push('/practice/${session.id}');
+        if (session.isCompleted || (totalCount > 0 && answeredCount >= totalCount)) {
+          context.push('/results/${session.id}');
+        } else {
+          context.push('/practice/${session.id}');
+        }
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(

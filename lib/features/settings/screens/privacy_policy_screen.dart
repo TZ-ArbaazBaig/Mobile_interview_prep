@@ -10,8 +10,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   Future<void> _launchEmail() async {
     final uri = Uri(scheme: 'mailto', path: 'arbaazbaig98@gmail.com');
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri);
+    } catch (_) {
+      // Fail-soft if no email app is installed
     }
   }
 

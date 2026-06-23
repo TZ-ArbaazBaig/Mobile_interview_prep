@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/interview_provider.dart';
+import '../../../providers/session_provider.dart';
 import '../../../models/question_model.dart';
 import '../../../shared/widgets/gradient_scaffold.dart';
 import '../../../shared/widgets/app_loader.dart';
@@ -229,7 +230,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () {
+            Provider.of<SessionProvider>(context, listen: false).fetchSessions();
+            context.go('/dashboard');
+          },
         ),
         title: Text(
           'Practice Console',

@@ -34,14 +34,25 @@ void main() async {
   final appLinks = AppLinks();
   appLinks.uriLinkStream.listen((uri) async {
     if (uri.scheme == 'interviewprep' && uri.host == 'oauth-callback') {
-      debugPrint('OAuth Callback Received! Full URI: $uri');
+      debugPrint('OAuth Callback Received via deep link! Full URI: $uri');
       final context = AppRouter.navigatorKey.currentContext;
       if (context != null && context.mounted) {
-        // Automatically close the in-app browser popup so we return to the app seamlessly!
+        // Close any open overlays (e.g., the OAuth WebView bottom sheet)
         closeInAppWebView();
-        
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.handleOAuthRedirect(uri);
+        // Also try to pop the bottom sheet if it's still showing
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
+
+        // Handle redirect after current frame to ensure all pops are processed
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final ctx = AppRouter.navigatorKey.currentContext;
+          if (ctx != null && ctx.mounted) {
+            final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+            authProvider.handleOAuthRedirect(uri);
+          }
+        });
       }
     }
   });
@@ -119,10 +130,8 @@ void main() async {
                 previous ?? ResultsProvider(service),
           ),
           ChangeNotifierProxyProvider<ChatService, ChatProvider>(
-            create: (context) =>
-                ChatProvider(context.read<ChatService>()),
-            update: (_, service, previous) =>
-                previous ?? ChatProvider(service),
+            create: (context) => ChatProvider(context.read<ChatService>()),
+            update: (_, service, previous) => previous ?? ChatProvider(service),
           ),
         ],
         child: const InterviewPrepApp(),

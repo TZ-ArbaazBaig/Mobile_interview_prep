@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/results_provider.dart';
+import '../../../providers/session_provider.dart';
 import '../../../shared/widgets/gradient_scaffold.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_error_widget.dart';
@@ -75,21 +77,45 @@ class _ResultsScreenState extends State<ResultsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () {
+            Provider.of<SessionProvider>(context, listen: false).fetchSessions();
+            context.go('/dashboard');
+          },
         ),
         title: Text('Session Results', style: AppTextStyles.h4(color: Colors.white)),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
-            onPressed: () {
-              Fluttertoast.showToast(
-                msg: "Link copied to clipboard!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
-                backgroundColor: AppColors.bgSecondary,
-                textColor: AppColors.textPrimary,
-              );
+            onPressed: () async {
+              try {
+                final shareUrl = '${dotenv.env['WEB_APP_URL'] ?? 'https://interview-prep-nine-zeta.vercel.app'}/results/${widget.sessionId}';
+                await Clipboard.setData(ClipboardData(text: shareUrl));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Link copied to clipboard!',
+                        style: AppTextStyles.bodyMedium(color: Colors.white),
+                      ),
+                      backgroundColor: AppColors.success,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Failed to copy link',
+                        style: AppTextStyles.bodyMedium(color: Colors.white),
+                      ),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -219,6 +245,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               text: 'Back to Dashboard',
               onPressed: () {
                 resultsProvider.clearResults();
+                Provider.of<SessionProvider>(context, listen: false).fetchSessions();
                 context.go('/dashboard');
               },
               variant: AppButtonVariant.secondary,

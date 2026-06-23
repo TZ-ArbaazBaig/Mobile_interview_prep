@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_utils.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/gradient_scaffold.dart';
 import '../../../core/router/app_router.dart';
+import '../../settings/screens/privacy_policy_screen.dart';
+import '../../settings/screens/terms_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -50,7 +53,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!emailRegex.hasMatch(email)) return false;
     
     // Evaluate strength checklist constraints:
-    if (password.length < 10) return false;
+    if (password.length < 8) return false;
     if (!RegExp(r'[A-Z]').hasMatch(password)) return false;
     if (!RegExp(r'[a-z]').hasMatch(password)) return false;
     if (!RegExp(r'[0-9]').hasMatch(password)) return false;
@@ -156,23 +159,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   String _cleanErrorMessage(dynamic e) {
-    try {
-      if (e != null && (e as dynamic).message != null) {
-        return e.message.toString();
-      }
-    } catch (_) {}
-    
-    final errStr = e.toString();
-    if (errStr.contains('Exception: ')) {
-      return errStr.replaceAll('Exception: ', '');
-    }
-    return errStr;
+    return ErrorUtils.cleanErrorMessage(e);
   }
 
   Widget _buildPasswordStrengthGrid() {
     final password = _passwordController.text;
     final criteria = [
-      (password.length >= 10, 'Length >= 10 characters'),
+      (password.length >= 8, 'Length >= 8 characters'),
       (RegExp(r'[A-Z]').hasMatch(password), 'Contains an uppercase letter ([A-Z])'),
       (RegExp(r'[a-z]').hasMatch(password), 'Contains a lowercase letter ([a-z])'),
       (RegExp(r'[0-9]').hasMatch(password), 'Contains a number ([0-9])'),
@@ -418,8 +411,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               if (value == null || value.isEmpty) {
                 return 'Password is required';
               }
-              if (value.length < 10) {
-                return 'Password must be at least 10 characters';
+              if (value.length < 8) {
+                return 'Password must be at least 8 characters';
               }
               if (!RegExp(r'[A-Z]').hasMatch(value)) {
                 return 'Must contain at least 1 uppercase letter';
@@ -587,6 +580,43 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     TextButton(
                       onPressed: () => context.pushReplacement(AppRouter.signIn),
                       child: const Text('Sign In'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Privacy and Terms Links
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                        );
+                      },
+                      child: Text(
+                        'Privacy Policy',
+                        style: AppTextStyles.bodySmall(color: AppColors.violetLight).copyWith(
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '  •  ',
+                      style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => const TermsScreen()),
+                        );
+                      },
+                      child: Text(
+                        'Terms of Service',
+                        style: AppTextStyles.bodySmall(color: AppColors.violetLight).copyWith(
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
                   ],
                 ),

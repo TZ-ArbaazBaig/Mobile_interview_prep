@@ -57,8 +57,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final matchesQuery = session.jobTitle.toLowerCase().contains(query);
       if (!matchesQuery) return false;
 
-      final answeredCount = session.evaluations.length;
-      final totalCount = session.questions.isEmpty ? 10 : session.questions.length;
+      final answeredCount = session.answeredCount ?? session.evaluations.length;
+      final totalCount = session.questionCount ?? (session.questions.isEmpty ? 10 : session.questions.length);
 
       if (_selectedTab == 'in-progress') {
         return answeredCount > 0 && answeredCount < totalCount;

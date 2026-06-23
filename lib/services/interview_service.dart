@@ -10,16 +10,25 @@ class InterviewService {
 
   InterviewService(this._dioClient);
 
-  Future<EvaluationModel?> submitAnswer(String sessionId, String questionId, String answerText) async {
+  Future<EvaluationModel?> submitAnswer(String questionId, String questionText, String answerText) async {
     try {
       final response = await _dioClient.dio.post(
-        ApiEndpoints.submitAnswer(sessionId, questionId),
+        ApiEndpoints.evaluate,
         data: {
-          'answer_text': answerText,
+          'questionId': questionId,
+          'userAnswer': answerText,
+          'questionText': questionText,
         },
       );
       if (response.data != null) {
-        return EvaluationModel.fromJson(response.data as Map<String, dynamic>);
+        final Map<String, dynamic> data = Map<String, dynamic>.from(response.data as Map);
+        if (!data.containsKey('questionId') && !data.containsKey('question_id')) {
+          data['questionId'] = questionId;
+        }
+        if (!data.containsKey('userAnswer') && !data.containsKey('user_answer')) {
+          data['userAnswer'] = answerText;
+        }
+        return EvaluationModel.fromJson(data);
       }
       return null;
     } on DioException catch (e) {

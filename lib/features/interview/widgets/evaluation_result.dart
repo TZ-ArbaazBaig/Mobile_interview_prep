@@ -103,39 +103,44 @@ class _EvaluationResultState extends State<EvaluationResult> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
           ),
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: Row(
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.violet.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.bolt, color: AppColors.violetLight, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('VIEW MODEL ANSWER', style: AppTextStyles.label(color: Colors.white)),
+                  ],
+                ),
+                iconColor: Colors.white,
+                collapsedIconColor: Colors.white,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.violet.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      border: Border(top: BorderSide(color: AppColors.border)),
                     ),
-                    child: const Icon(Icons.bolt, color: AppColors.violetLight, size: 20),
+                    child: Text(
+                      widget.evaluation.modelAnswer.isNotEmpty 
+                          ? widget.evaluation.modelAnswer 
+                          : 'No model answer provided.',
+                      style: AppTextStyles.bodyMedium(color: AppColors.textSecondary).copyWith(height: 1.6),
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Text('VIEW MODEL ANSWER', style: AppTextStyles.label(color: Colors.white)),
                 ],
               ),
-              iconColor: Colors.white,
-              collapsedIconColor: Colors.white,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: AppColors.border)),
-                  ),
-                  child: Text(
-                    widget.evaluation.modelAnswer.isNotEmpty 
-                        ? widget.evaluation.modelAnswer 
-                        : 'No model answer provided.',
-                    style: AppTextStyles.bodyMedium(color: AppColors.textSecondary).copyWith(height: 1.6),
-                  ),
-                ),
-              ],
             ),
           ),
         ),

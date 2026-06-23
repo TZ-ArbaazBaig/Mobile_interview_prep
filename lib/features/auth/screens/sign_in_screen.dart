@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_utils.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/gradient_scaffold.dart';
 import '../../../core/router/app_router.dart';
+import '../../settings/screens/privacy_policy_screen.dart';
+import '../../settings/screens/terms_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -92,18 +95,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   String _cleanErrorMessage(dynamic e) {
-    try {
-      // Try to check if it's a dynamic object with a message property (e.g. ClerkException)
-      if (e != null && (e as dynamic).message != null) {
-        return e.message.toString();
-      }
-    } catch (_) {}
-    
-    final errStr = e.toString();
-    if (errStr.contains('Exception: ')) {
-      return errStr.replaceAll('Exception: ', '');
-    }
-    return errStr;
+    return ErrorUtils.cleanErrorMessage(e);
   }
 
   @override
@@ -281,6 +273,43 @@ class _SignInScreenState extends State<SignInScreen> {
                   TextButton(
                     onPressed: () => context.pushReplacement(AppRouter.signUp),
                     child: const Text('Sign Up'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Privacy and Terms Links
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                      );
+                    },
+                    child: Text(
+                      'Privacy Policy',
+                      style: AppTextStyles.bodySmall(color: AppColors.violetLight).copyWith(
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '  •  ',
+                    style: AppTextStyles.bodySmall(color: AppColors.textMuted),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const TermsScreen()),
+                      );
+                    },
+                    child: Text(
+                      'Terms of Service',
+                      style: AppTextStyles.bodySmall(color: AppColors.violetLight).copyWith(
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ],
               ),

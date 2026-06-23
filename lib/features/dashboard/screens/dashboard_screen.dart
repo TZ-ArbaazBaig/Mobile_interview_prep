@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _confirmDeleteAccount(BuildContext context) async {
-    final webUrl = dotenv.env['WEB_APP_URL'] ?? 'https://interviewprep-production-d031.up.railway.app';
+    final webUrl = dotenv.env['WEB_APP_URL'] ?? 'https://interview-prep-nine-zeta.vercel.app';
     
     final confirmed = await showDialog<bool>(
       context: context,
@@ -190,15 +190,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     );
 
+    debugPrint('=== DELETE ACCOUNT TRACE ===');
+    debugPrint('confirmed variable value: $confirmed');
+    debugPrint('context mounted state: ${context.mounted}');
+
     if (confirmed == true && context.mounted) {
       final deleteUri = Uri.parse('$webUrl/profile');
-      if (await canLaunchUrl(deleteUri)) {
-        await launchUrl(deleteUri, mode: LaunchMode.externalApplication);
-      } else {
+      debugPrint('Attempting to launch deleteUri: $deleteUri');
+      try {
+        final success = await launchUrl(deleteUri, mode: LaunchMode.externalApplication);
+        debugPrint('launchUrl success status: $success');
+        if (!success) {
+          debugPrint('launchUrl returned false! Platform browser failed to launch.');
+        }
+      } catch (e, stackTrace) {
+        debugPrint('Caught exception during launchUrl: $e');
+        debugPrint('StackTrace: $stackTrace');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not open account deletion link.'),
+            SnackBar(
+              content: Text('Could not open account deletion link: $e'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -211,8 +222,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        final clerkUser = ClerkAuth.userOf(context);
+      builder: (BuildContext sheetContext) {
+        final clerkUser = ClerkAuth.userOf(sheetContext);
         final email = (clerkUser?.emailAddresses != null && clerkUser!.emailAddresses!.isNotEmpty)
             ? clerkUser.emailAddresses!.first.emailAddress
             : '';
@@ -224,8 +235,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: SafeArea(
-            child: Column(
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -295,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title: Text('Privacy Policy', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
                   onTap: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(sheetContext).pop();
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
                     );
@@ -307,7 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title: Text('Terms of Service', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
                   onTap: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(sheetContext).pop();
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => const TermsScreen()),
                     );
@@ -315,26 +328,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const Divider(color: AppColors.border, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
-                  title: Text('Log Out', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
+                  leading: const Icon(Icons.delete_forever_rounded, color: AppColors.error),
+                  title: Text('Delete Account', style: AppTextStyles.bodyMedium(color: AppColors.error)),
                   onTap: () {
-                    Navigator.of(context).pop();
-                    _confirmLogout(context);
+                    Navigator.of(sheetContext).pop();
+                    _confirmDeleteAccount(context);
                   },
                 ),
                 const Divider(color: AppColors.border, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.delete_forever_rounded, color: AppColors.error),
-                  title: Text('Delete Account', style: AppTextStyles.bodyMedium(color: AppColors.error)),
+                  leading: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
+                  title: Text('Log Out', style: AppTextStyles.bodyMedium(color: AppColors.textPrimary)),
                   onTap: () {
-                    Navigator.of(context).pop();
-                    _confirmDeleteAccount(context);
+                    Navigator.of(sheetContext).pop();
+                    _confirmLogout(context);
                   },
                 ),
               ],
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }

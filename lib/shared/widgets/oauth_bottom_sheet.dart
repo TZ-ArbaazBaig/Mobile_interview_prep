@@ -64,12 +64,17 @@ class _OAuthBottomSheetState extends State<OAuthBottomSheet> {
             if (request.url.startsWith('interviewprep://')) {
               final uri = Uri.parse(request.url);
               
+              // IMPORTANT: Capture authProvider BEFORE popping the bottom sheet,
+              // because this context becomes invalid after pop()
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              
               // Pop the bottom sheet first so control returns to the screen
               Navigator.of(context).pop();
               
-              // Execute redirection flow on AuthProvider
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              authProvider.handleOAuthRedirect(uri);
+              // Execute redirection flow after the frame completes (bottom sheet dismissed)
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                authProvider.handleOAuthRedirect(uri);
+              });
               
               return NavigationDecision.prevent;
             }
@@ -83,13 +88,19 @@ class _OAuthBottomSheetState extends State<OAuthBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // Bottom Sheet height: 85% of remaining height to prevent overflow
-    final double sheetHeight = (MediaQuery.of(context).size.height - keyboardHeight) * 0.85;
+    // Bottom Sheet height: 85% (keyboard closed) or 95% (keyboard open) of remaining height
+    final double sheetHeight = (MediaQuery.of(context).size.height - keyboardHeight) * (keyboardHeight > 0 ? 0.95 : 0.85);
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: keyboardHeight),
-      child: Container(
-        height: sheetHeight,
+    return PopScope(
+      canPop: keyboardHeight == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: Padding(
+        padding: EdgeInsets.only(bottom: keyboardHeight),
+        child: Container(
+          height: sheetHeight,
         decoration: const BoxDecoration(
           color: AppColors.bgSecondary,
           borderRadius: BorderRadius.only(
@@ -168,6 +179,7 @@ class _OAuthBottomSheetState extends State<OAuthBottomSheet> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }

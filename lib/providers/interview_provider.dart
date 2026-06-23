@@ -125,7 +125,8 @@ class InterviewProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final evaluation = await _interviewService.submitAnswer(_activeSession!.id, questionId, answer);
+      final question = _questions.firstWhere((q) => q.id == questionId);
+      final evaluation = await _interviewService.submitAnswer(questionId, question.text, answer);
       if (evaluation != null) {
         _evaluations[questionId] = evaluation;
       }
